@@ -4,11 +4,14 @@ import (
 	"fmt"
 	"os"
 	"time"
+	"encoding/json"
+	"strconv"
 )
 
 type mark struct {
-	time   time.Time
-	status string
+	Time          string `json:"time"`
+	Status        string `json:"status"`
+	DinnerMinutes int `json:"dinnerMinutes"`
 }
 
 func main() {
@@ -28,12 +31,13 @@ func main() {
 
 	switch command {
 	case "start":
-		log("start", time.Now())
+		log(mark{Time: time.Now().Format("2006-01-02 15:04:05"), Status: "start"})
 	case "stop":
-		log("stop", time.Now())
+		log(mark{Time: time.Now().Format("2006-01-02 15:04:05"), Status: "stop"})
 	case "dinner":
 		if parameter != "" {
-			dinner(parameter)
+			dinnerMinutes, _ := strconv.Atoi(parameter)
+			log(mark{Time: time.Now().Format("2006-01-02 15:04:05"), Status: "dinner", DinnerMinutes: dinnerMinutes})
 		} else {
 			help()
 		}
@@ -41,15 +45,12 @@ func main() {
 		help()
 	}
 }
-func dinner(dinnerMinutesString string) {
-	log("dinner | " + dinnerMinutesString, time.Now())
-}
 
 func help() {
 	fmt.Println("Использование: worktime (start|stop|dinner minutes)")
 }
 
-func log(status string, time time.Time) {
+func log(mark mark) {
 	fileName := "./worktime.log"
 
 	file, error := os.OpenFile(fileName, os.O_APPEND|os.O_WRONLY, 0644)
@@ -59,7 +60,10 @@ func log(status string, time time.Time) {
 
 	defer file.Close()
 
-	logString := fmt.Sprintln(time.Format("2006-01-02 15:04:05"), "|", status)
+	jsonEncodedMark, _ := json.Marshal(mark)
+	logString := fmt.Sprintln(string(jsonEncodedMark))
+
+	fmt.Println(logString)
 
 	if _, error = file.WriteString(logString); error != nil {
 		panic(error)
