@@ -8,10 +8,14 @@ import (
 	"strconv"
 )
 
+import "github.com/mitchellh/go-homedir"
+
+const LOG_NAME = "/worktime.log"
+
 type mark struct {
 	Time          string `json:"time"`
 	Status        string `json:"status"`
-	DinnerMinutes int `json:"dinnerMinutes"`
+	DinnerMinutes int `json:"dinner"`
 }
 
 func main() {
@@ -51,12 +55,19 @@ func help() {
 }
 
 func log(mark mark) {
-	fileName := "./worktime.log"
+	logPath, _ := homedir.Dir()
+	logPath = logPath + LOG_NAME
+	var _, error = os.Stat(logPath)
 
-	file, error := os.OpenFile(fileName, os.O_APPEND|os.O_WRONLY, 0644)
-	if error != nil {
-		panic(error)
+	if os.IsNotExist(error) {
+		fmt.Println("Log file not exist. Creating new one at", logPath)
+		var file, error = os.Create(logPath)
+		checkError(error)
+		defer file.Close()
 	}
+
+	file, error := os.OpenFile(logPath, os.O_APPEND|os.O_WRONLY, 0644)
+	checkError(error)
 
 	defer file.Close()
 
@@ -65,7 +76,12 @@ func log(mark mark) {
 
 	fmt.Println(logString)
 
-	if _, error = file.WriteString(logString); error != nil {
+	_, error = file.WriteString(logString)
+	checkError(error)
+}
+
+func checkError(error error) {
+	if error != nil {
 		panic(error)
 	}
 }
