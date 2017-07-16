@@ -55,14 +55,25 @@ func main() {
 			help()
 		}
 	case "time":
-		countTime()
+		var verboseLog bool = false
+
+		if parameter == "full" {
+			verboseLog = true
+		}
+
+		countTime(verboseLog)
 	default:
 		help()
 	}
 }
 
 func help() {
-	fmt.Println("Использование: worktime (start|stop|time|dinner minutes)")
+	fmt.Println("Использование: worktime (start|stop|time [full]|dinner (minutes))")
+	fmt.Println("   start \t\tОтметка о начале рабочего дня")
+	fmt.Println("   stop \t\tОтметка об окончании рабочего дня")
+	fmt.Println("   dinner (minutes) \tЗапись количества минут проведенных на отдыхе или обеде")
+	fmt.Println("   time \t\tПросмотр временного баланса переработок или недоработок")
+	fmt.Println("   time full \t\tПросморт полного лога рабочего времени")
 }
 
 func openFile() *os.File {
@@ -175,15 +186,17 @@ func start(workDay workDay) {
 	checkError(error)
 }
 
-func countTime() {
+func countTime(verboseLog bool) {
 	file := openFile()
 	defer file.Close()
 
 	lastWorkDay, workDays := getWorkDays(file)
 	workDays = append(workDays, lastWorkDay)
 
-	fmt.Println("Дата  | Начал Конец | Обед \t| Переработка")
-	fmt.Println("---------------------------------------------------")
+	if verboseLog {
+		fmt.Println("Дата  | Начал Конец | Обед \t| Переработка")
+		fmt.Println("---------------------------------------------------")
+	}
 
 	var minuteBalance float64
 	for _, workDay := range workDays {
@@ -212,27 +225,30 @@ func countTime() {
 			dayHours = math.Ceil(fullDayMinutes / 60)
 		}
 
-		dayMinutes := fullDayMinutes - (dayHours * 60)
+		if verboseLog {
+			dayMinutes := fullDayMinutes - (dayHours * 60)
 
-		var workTimingString string
-		if dayHours == 0 {
-			workTimingString = fmt.Sprintf("%v мин", dayMinutes)
-		} else {
-			workTimingString = fmt.Sprintf("%v час %v мин", dayHours, math.Abs(dayMinutes))
+			var workTimingString string
+			if dayHours == 0 {
+				workTimingString = fmt.Sprintf("%v мин", dayMinutes)
+			} else {
+				workTimingString = fmt.Sprintf("%v час %v мин", dayHours, math.Abs(dayMinutes))
+			}
+
+			fmt.Println(fmt.Sprintf("%v | %v %v | %v мин \t| %v",
+				startTime.Format(TIME_FORMAT_DATE),
+				startTime.Format(TIME_FORMAT_SHORT),
+				stopTime.Format(TIME_FORMAT_SHORT),
+				workDay.DinnerMinutes,
+				workTimingString))
 		}
-
-		fmt.Println(fmt.Sprintf("%v | %v %v | %v мин \t| %v",
-			startTime.Format(TIME_FORMAT_DATE),
-			startTime.Format(TIME_FORMAT_SHORT),
-			stopTime.Format(TIME_FORMAT_SHORT),
-			workDay.DinnerMinutes,
-			workTimingString))
 
 		minuteBalance = minuteBalance + fullDayMinutes
 	}
 
-	fmt.Println("===================================================")
-
+	if verboseLog {
+		fmt.Println("===================================================")
+	}
 
 	var hourBalance float64
 	var balanceStatus string
