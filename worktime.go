@@ -10,9 +10,10 @@ import (
 	"log"
 	"bufio"
 	"io/ioutil"
+	"strconv"
 )
 
-const LOG_NAME = "/worktime.log"
+const LOG_NAME = "worktime.log"
 const TIME_FORMAT = "2006-01-02 15:04:05"
 
 type workDay struct {
@@ -32,31 +33,32 @@ func main() {
 	}
 
 	command := arguments[0]
-	//var parameter string
-	//
-	//if len(arguments) > 1 {
-	//	parameter = arguments[1]
-	//}
+	var parameter string
+
+	if len(arguments) > 1 {
+		parameter = arguments[1]
+	}
 
 	switch command {
 	case "start":
 		start(workDay{StartTime: time.Now().Format(TIME_FORMAT)})
 	case "stop":
-		stop()
-	//case "dinner":
-	//	if parameter != "" {
-	//		dinnerMinutes, _ := strconv.Atoi(parameter)
-	//		log(workDay{Time: time.Now().Format("2006-01-02 15:04:05"), Status: "dinner", DinnerMinutes: dinnerMinutes})
-	//	} else {
-	//		help()
-	//	}
+		updateLastRecord(workDay{StopTime: time.Now().Format(TIME_FORMAT)})
+	case "dinner":
+		if parameter != "" {
+			dinnerMinutes, _ := strconv.Atoi(parameter)
+			updateLastRecord(workDay{DinnerMinutes: dinnerMinutes})
+		} else {
+			help()
+		}
+	case "time":
 	default:
 		help()
 	}
 }
 
 func help() {
-	fmt.Println("Использование: worktime (start|stop|dinner minutes)")
+	fmt.Println("Использование: worktime (start|stop|time|dinner minutes)")
 }
 
 func openFile() *os.File {
@@ -79,7 +81,7 @@ func openFile() *os.File {
 func getFilePath() string {
 	logPath, _ := homedir.Dir()
 
-	return logPath + LOG_NAME
+	return logPath + "/" + LOG_NAME
 }
 
 func checkError(error error) {
@@ -93,40 +95,8 @@ func clearLogFile() {
 	checkError(err)
 }
 
-//func countTime(workDays []workDay) (hours int, minutes int) {
-//	for _, workDay := range workDays {
-//		then, error := time.Parse(TIME_FORMAT, workDay.StartTime)
-//		checkError(error)
-//
-//		duration := time.Since(then)
-//		fmt.Println(duration.Hours())
-//
-//		hours += workDay.StartTime
-//	}
-//
-//	return hours, minutes
-//}
-
-func start(workDay workDay) {
-	file := openFile()
-	defer file.Close()
-
-	jsonEncodedMark, _ := json.Marshal(workDay)
-	logString := fmt.Sprintln(string(jsonEncodedMark))
-
-	fmt.Println(logString)
-
-	_, error := file.WriteString(logString)
-	checkError(error)
-}
-
-func stop() {
-	file := openFile()
-	defer file.Close()
-
+func getWorkDays(file *os.File) (lastWorkDay workDay, workDays []workDay) {
 	bf := bufio.NewReader(file)
-
-	var workDays []workDay
 
 	for {
 		line, _, err := bf.ReadLine()
@@ -145,8 +115,30 @@ func stop() {
 		workDays = append(workDays, c)
 	}
 
-	lastDay := workDays[len(workDays)-1]
+	lastWorkDay = workDays[len(workDays)-1]
 	workDays = workDays[:len(workDays)-1]
+
+	return lastWorkDay, workDays
+}
+
+func start(workDay workDay) {
+	file := openFile()
+	defer file.Close()
+
+	jsonEncodedMark, _ := json.Marshal(workDay)
+	logString := fmt.Sprintln(string(jsonEncodedMark))
+
+	fmt.Println(logString)
+
+	_, error := file.WriteString(logString)
+	checkError(error)
+}
+
+func updateLastRecord(workDayPatch workDay) {
+	file := openFile()
+	defer file.Close()
+
+	lastWorkDay, workDays := getWorkDays(file)
 
 	clearLogFile()
 
@@ -157,10 +149,20 @@ func stop() {
 		checkError(error)
 	}
 
-	lastDay.StopTime = time.Now().Format(TIME_FORMAT)
+	patchWordDay(&lastWorkDay, workDayPatch)
 
-	jsonEncodedMark, _ := json.Marshal(lastDay)
+	jsonEncodedMark, _ := json.Marshal(lastWorkDay)
 	logString := fmt.Sprintln(string(jsonEncodedMark))
 	fmt.Println(logString)
 	file.WriteString(logString)
+}
+
+func patchWordDay(workDay *workDay, patch workDay) {
+	if patch.DinnerMinutes > 0 {
+		workDay.DinnerMinutes = patch.DinnerMinutes
+	}
+
+	if patch.StopTime != "" {
+		workDay.StopTime = patch.StopTime
+	}
 }
