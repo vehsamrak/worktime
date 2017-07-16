@@ -74,6 +74,7 @@ func help() {
 	fmt.Println("   dinner (minutes) \tЗапись количества минут проведенных на отдыхе или обеде")
 	fmt.Println("   time \t\tПросмотр временного баланса переработок или недоработок")
 	fmt.Println("   time full \t\tПросморт полного лога рабочего времени")
+	fmt.Println("   help \t\tПросмотр текущей справки")
 }
 
 func openFile() *os.File {
