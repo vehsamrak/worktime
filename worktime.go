@@ -11,17 +11,19 @@ import (
 	"bufio"
 	"io/ioutil"
 	"strconv"
+	"math"
 )
 
 const LOG_NAME = "worktime.log"
-const TIME_FORMAT = "2006-01-02 15:04:05"
+const DEFAULT_DINNER_DURATION = 30
+const TIME_FORMAT = "2006-01-02 15:04"
+const TIME_FORMAT_DATE = "01-02"
+const TIME_FORMAT_SHORT = "15:04"
 
 type workDay struct {
 	StartTime     		string `json:"startTime"`
 	StopTime       		string `json:"stopTime"`
 	DinnerMinutes 		int    `json:"dinner"`
-	TimeBalanceHours   	int    `json:"balanceHours"`
-	TimeBalanceMinutes  int    `json:"balanceMinutes"`
 }
 
 func main() {
@@ -52,6 +54,7 @@ func main() {
 			help()
 		}
 	case "time":
+		countTime()
 	default:
 		help()
 	}
@@ -95,6 +98,43 @@ func clearLogFile() {
 	checkError(err)
 }
 
+func updateLastRecord(workDayPatch workDay) {
+	file := openFile()
+	defer file.Close()
+
+	lastWorkDay, workDays := getWorkDays(file)
+
+	clearLogFile()
+
+	for _, workDay := range workDays {
+		jsonEncodedMark, _ := json.Marshal(workDay)
+		logString := fmt.Sprintln(string(jsonEncodedMark))
+		_, error := file.WriteString(logString)
+		checkError(error)
+	}
+
+	if lastWorkDay.DinnerMinutes == 0 {
+		lastWorkDay.DinnerMinutes = DEFAULT_DINNER_DURATION
+	}
+
+	patchWordDay(&lastWorkDay, workDayPatch)
+
+	jsonEncodedMark, _ := json.Marshal(lastWorkDay)
+	logString := fmt.Sprintln(string(jsonEncodedMark))
+	fmt.Println(logString)
+	file.WriteString(logString)
+}
+
+func patchWordDay(workDay *workDay, patch workDay) {
+	if patch.DinnerMinutes > 0 {
+		workDay.DinnerMinutes = patch.DinnerMinutes
+	}
+
+	if patch.StopTime != "" {
+		workDay.StopTime = patch.StopTime
+	}
+}
+
 func getWorkDays(file *os.File) (lastWorkDay workDay, workDays []workDay) {
 	bf := bufio.NewReader(file)
 
@@ -134,35 +174,52 @@ func start(workDay workDay) {
 	checkError(error)
 }
 
-func updateLastRecord(workDayPatch workDay) {
+func countTime() {
 	file := openFile()
 	defer file.Close()
 
 	lastWorkDay, workDays := getWorkDays(file)
+	workDays = append(workDays, lastWorkDay)
 
-	clearLogFile()
+	fmt.Println("Дата  | Начал Конец | Обед \t| Переработка")
+	fmt.Println("---------------------------------------------------")
 
+	var hours float64
+	var minutes float64
 	for _, workDay := range workDays {
-		jsonEncodedMark, _ := json.Marshal(workDay)
-		logString := fmt.Sprintln(string(jsonEncodedMark))
-		_, error := file.WriteString(logString)
+		startTime, error := time.Parse(TIME_FORMAT, workDay.StartTime)
 		checkError(error)
+
+		if workDay.StopTime == "" {
+			continue
+		}
+
+		stopTime, error := time.Parse(TIME_FORMAT, workDay.StopTime)
+		checkError(error)
+
+		startTimeWithDinner := startTime.Add(time.Duration(workDay.DinnerMinutes) * time.Minute)
+		dayDuration := stopTime.Sub(startTimeWithDinner)
+
+		dayHours := math.Floor(dayDuration.Hours())
+		dayMinutes := math.Floor((dayDuration.Hours() - dayHours) * 60)
+
+		fmt.Println(fmt.Sprintf("%v | %v %v | %v мин \t| %v час %v мин",
+			startTime.Format(TIME_FORMAT_DATE),
+			startTime.Format(TIME_FORMAT_SHORT),
+			stopTime.Format(TIME_FORMAT_SHORT),
+			workDay.DinnerMinutes,
+			dayHours,
+			dayMinutes,
+		))
+
+		hours = hours + dayHours
+		minutes = minutes + dayMinutes
 	}
 
-	patchWordDay(&lastWorkDay, workDayPatch)
+	fmt.Println("===================================================")
 
-	jsonEncodedMark, _ := json.Marshal(lastWorkDay)
-	logString := fmt.Sprintln(string(jsonEncodedMark))
-	fmt.Println(logString)
-	file.WriteString(logString)
-}
+	hourBalance := hours + math.Floor(minutes / 60)
+	minuteBalance := minutes - (math.Floor(minutes / 60) * 60)
 
-func patchWordDay(workDay *workDay, patch workDay) {
-	if patch.DinnerMinutes > 0 {
-		workDay.DinnerMinutes = patch.DinnerMinutes
-	}
-
-	if patch.StopTime != "" {
-		workDay.StopTime = patch.StopTime
-	}
+	fmt.Println(fmt.Sprintf("Переработка: %v ч. %v мин.", hourBalance, minuteBalance))
 }
