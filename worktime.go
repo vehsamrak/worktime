@@ -19,6 +19,7 @@ const DEFAULT_DINNER_DURATION = 30
 const TIME_FORMAT = "2006-01-02 15:04"
 const TIME_FORMAT_DATE = "01-02"
 const TIME_FORMAT_SHORT = "15:04"
+const WORK_HOURS_NUMBER = 8
 
 type workDay struct {
 	StartTime     		string `json:"startTime"`
@@ -184,8 +185,7 @@ func countTime() {
 	fmt.Println("Дата  | Начал Конец | Обед \t| Переработка")
 	fmt.Println("---------------------------------------------------")
 
-	var hours float64
-	var minutes float64
+	var minuteBalance float64
 	for _, workDay := range workDays {
 		startTime, error := time.Parse(TIME_FORMAT, workDay.StartTime)
 		checkError(error)
@@ -197,29 +197,61 @@ func countTime() {
 		stopTime, error := time.Parse(TIME_FORMAT, workDay.StopTime)
 		checkError(error)
 
-		startTimeWithDinner := startTime.Add(time.Duration(workDay.DinnerMinutes) * time.Minute)
-		dayDuration := stopTime.Sub(startTimeWithDinner)
+		dinnerDuration := time.Duration(workDay.DinnerMinutes) * time.Minute
+		expectedWorkDayDuration := time.Duration(WORK_HOURS_NUMBER * time.Hour)
+		overTimeWork := stopTime.Sub(startTime) - expectedWorkDayDuration - dinnerDuration
+		overTimeWorkHours := overTimeWork.Hours()
 
-		dayHours := math.Floor(dayDuration.Hours())
-		dayMinutes := math.Floor((dayDuration.Hours() - dayHours) * 60)
+		var fullDayMinutes float64
+		var dayHours float64
+		if overTimeWork >= 0 {
+			fullDayMinutes = math.Floor(overTimeWorkHours * 60)
+			dayHours = math.Floor(fullDayMinutes / 60)
+		} else {
+			fullDayMinutes = math.Ceil(overTimeWorkHours * 60)
+			dayHours = math.Ceil(fullDayMinutes / 60)
+		}
 
-		fmt.Println(fmt.Sprintf("%v | %v %v | %v мин \t| %v час %v мин",
+		dayMinutes := fullDayMinutes - (dayHours * 60)
+
+		var workTimingString string
+		if dayHours == 0 {
+			workTimingString = fmt.Sprintf("%v мин", dayMinutes)
+		} else {
+			workTimingString = fmt.Sprintf("%v час %v мин", dayHours, math.Abs(dayMinutes))
+		}
+
+		fmt.Println(fmt.Sprintf("%v | %v %v | %v мин \t| %v",
 			startTime.Format(TIME_FORMAT_DATE),
 			startTime.Format(TIME_FORMAT_SHORT),
 			stopTime.Format(TIME_FORMAT_SHORT),
 			workDay.DinnerMinutes,
-			dayHours,
-			dayMinutes,
-		))
+			workTimingString))
 
-		hours = hours + dayHours
-		minutes = minutes + dayMinutes
+		minuteBalance = minuteBalance + fullDayMinutes
 	}
 
 	fmt.Println("===================================================")
 
-	hourBalance := hours + math.Floor(minutes / 60)
-	minuteBalance := minutes - (math.Floor(minutes / 60) * 60)
 
-	fmt.Println(fmt.Sprintf("Переработка: %v ч. %v мин.", hourBalance, minuteBalance))
+	var hourBalance float64
+	var balanceStatus string
+	if minuteBalance >= 0 {
+		hourBalance = math.Floor(minuteBalance / 60)
+		balanceStatus = "Переработка"
+	} else {
+		hourBalance = math.Ceil(minuteBalance / 60)
+		balanceStatus = "Недоработка"
+	}
+
+	minuteBalance = minuteBalance - (hourBalance * 60)
+
+	var totalWorkTimingString string
+	if hourBalance == 0 {
+		totalWorkTimingString = fmt.Sprintf("%v мин", math.Abs(minuteBalance))
+	} else {
+		totalWorkTimingString = fmt.Sprintf("%v час %v мин", math.Abs(hourBalance), math.Abs(minuteBalance))
+	}
+
+	fmt.Println(fmt.Sprintf("%v: %v", balanceStatus, totalWorkTimingString))
 }
