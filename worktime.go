@@ -178,12 +178,23 @@ func start(workDay workDay) {
 	file := openFile()
 	defer file.Close()
 
+    lastWorkDay, _ := getWorkDays(file)
+
+    lastStartDate, error := time.Parse(TIME_FORMAT, lastWorkDay.StartTime)
+    checkError(error)
+
+    if lastStartDate.Day() == time.Now().Day() {
+        fmt.Printf("Current work day was already started. Please edit %v if you like.\n", getFilePath())
+
+        return
+    }
+
 	jsonEncodedMark, _ := json.Marshal(workDay)
 	logString := fmt.Sprintln(string(jsonEncodedMark))
 
 	fmt.Println(logString)
 
-	_, error := file.WriteString(logString)
+	_, error = file.WriteString(logString)
 	checkError(error)
 }
 
