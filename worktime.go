@@ -168,8 +168,13 @@ func getWorkDays(file *os.File) (lastWorkDay workDay, workDays []workDay) {
 		workDays = append(workDays, c)
 	}
 
-	lastWorkDay = workDays[len(workDays)-1]
-	workDays = workDays[:len(workDays)-1]
+	if len(workDays) > 0 {
+		lastWorkDay = workDays[len(workDays)-1]
+	}
+
+	if len(workDays) > 0 {
+		workDays = workDays[:len(workDays)-1]
+	}
 
 	return lastWorkDay, workDays
 }
