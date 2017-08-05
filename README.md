@@ -1,6 +1,8 @@
 # Worktime
 ## Консольная утилита для учета рабочего времени
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/Vehsamrak/worktime)](https://goreportcard.com/report/github.com/Vehsamrak/worktime)
+
 ### Описание
 ```
 Использование: worktime (start|stop|time [full]|dinner (minutes))
