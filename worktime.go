@@ -233,7 +233,7 @@ func countTime(tailNumber int, verboseLog bool) {
     cutWorkDaysStatistics := tailNumber > 0 && len(workDays) >= tailNumber
 
     if cutWorkDaysStatistics {
-        workDays = workDays[len(workDays)-tailNumber:]
+        workDays = workDays[len(workDays)-tailNumber-1:]
     }
 
     var minuteBalance float64
