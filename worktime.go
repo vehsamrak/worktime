@@ -15,7 +15,8 @@ import (
 )
 
 const DefaultDinnerDuration = 30
-const LogName = "worktime.log"
+const LogDirectory = ".worktime/"
+const LogPath = "worktime.log"
 const TimeFormat = "2006-01-02 15:04"
 const TimeFormatDate = "01-02"
 const TimeFormatShort = "15:04"
@@ -91,26 +92,29 @@ func help() {
 }
 
 func openFile() *os.File {
+	logDirectory := getLogDirectory()
 	logPath := getFilePath()
 	var _, err = os.Stat(logPath)
 
 	if os.IsNotExist(err) {
-		fmt.Println("Log file not exist. Creating new one at", logPath)
-		var file, err = os.Create(logPath)
-		checkError(err)
-		defer file.Close()
+		fmt.Println("Log file doesn't exist. Creating new one at", logPath)
 	}
 
-	file, err := os.OpenFile(logPath, os.O_APPEND|os.O_RDWR, 0644)
+	os.MkdirAll(logDirectory, 0777)
+	file, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0644)
 	checkError(err)
 
 	return file
 }
 
-func getFilePath() string {
-	logPath, _ := homedir.Dir()
+func getLogDirectory() string {
+	homeDirectory, _ := homedir.Dir()
 
-	return logPath + "/" + LogName
+	return homeDirectory + "/" + LogDirectory
+}
+
+func getFilePath() string {
+	return getLogDirectory() + LogPath
 }
 
 func checkError(error error) {
