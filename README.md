@@ -18,7 +18,7 @@
 ```
 
 ### Установка
-Скомпиллированное и готовое к запуску приложение доступно в [списке релизов](https://github.com/Vehsamrak/worktime/releases).
+Скомпиллированное и готовое к запуску приложение доступно в [последнем релизе](https://github.com/Vehsamrak/worktime/releases/latest).
 
 ### Сборка из исходников
 * Установите [Golang](https://golang.org/doc/install)
