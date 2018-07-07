@@ -24,13 +24,6 @@ const TimeFormatDate = "01-02"
 const TimeFormatShort = "15:04"
 const WorkHoursNumber = 8
 
-type workDay struct {
-	StartTime     string `json:"startTime"`
-	StopTime      string `json:"stopTime"`
-	DinnerMinutes int    `json:"dinner"`
-	Comment       string `json:"comment"`
-}
-
 func main() {
 	arguments := os.Args[1:]
 
