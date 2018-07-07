@@ -11,9 +11,11 @@ import (
 	"math"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
+const Version = "1.4.0"
 const DefaultDinnerDuration = 30
 const LogDirectory = ".worktime/"
 const LogPath = "worktime.log"
@@ -26,6 +28,7 @@ type workDay struct {
 	StartTime     string `json:"startTime"`
 	StopTime      string `json:"stopTime"`
 	DinnerMinutes int    `json:"dinner"`
+	Comment       string `json:"comment"`
 }
 
 func main() {
@@ -75,6 +78,15 @@ func main() {
 		}
 
 		countTime(tailNumber, verboseLog)
+	case "note":
+		if parameter != "" {
+			comment := strings.Join(arguments[:], " ")
+			updateLastRecord(workDay{Comment: comment})
+		} else {
+			help()
+		}
+	case "version":
+		fmt.Println("Current version: " + Version)
 	default:
 		help()
 	}
@@ -88,6 +100,8 @@ func help() {
 	fmt.Println("   time \t\tПросмотр временного баланса переработок или недоработок")
 	fmt.Println("   time full\t\tПросморт полного лога рабочего времени")
 	fmt.Println("   time full [X]\tПросморт лога рабочего времени за X последних дней")
+	fmt.Println("   note (text comment) \tДобавление комментария к текущему дню")
+	fmt.Println("   version \t\tОтображение текущей версии")
 	fmt.Println("   help \t\tПросмотр текущей справки")
 }
 
@@ -162,6 +176,10 @@ func patchWordDay(workDay *workDay, patch workDay) {
 
 	if patch.StopTime != "" {
 		workDay.StopTime = patch.StopTime
+	}
+
+	if patch.Comment != "" {
+		workDay.Comment = patch.Comment
 	}
 }
 
