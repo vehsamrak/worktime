@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"github.com/Vehsamrak/worktime/src"
+	"github.com/Vehsamrak/worktime/model"
 	"github.com/mitchellh/go-homedir"
 	"io"
 	"io/ioutil"
@@ -16,7 +16,7 @@ import (
 	"time"
 )
 
-const Version = "1.4.0"
+const Version = "1.5.0"
 const DefaultDinnerDuration = 30
 const LogDirectory = ".worktime/"
 const LogPath = "worktime.log"
@@ -47,13 +47,13 @@ func main() {
 
 	switch command {
 	case "start":
-		start(src.WorkDay{StartTime: time.Now().Format(TimeFormat)})
+		start(model.WorkDay{StartTime: time.Now().Format(TimeFormat)})
 	case "stop":
-		updateLastRecord(src.WorkDay{StopTime: time.Now().Format(TimeFormat)})
+		updateLastRecord(model.WorkDay{StopTime: time.Now().Format(TimeFormat)})
 	case "dinner":
 		if parameter != "" {
 			dinnerMinutes, _ := strconv.Atoi(parameter)
-			updateLastRecord(src.WorkDay{DinnerMinutes: dinnerMinutes})
+			updateLastRecord(model.WorkDay{DinnerMinutes: dinnerMinutes})
 		} else {
 			help()
 		}
@@ -75,7 +75,7 @@ func main() {
 	case "note":
 		if parameter != "" {
 			comment := strings.Join(arguments[:], " ")
-			updateLastRecord(src.WorkDay{Comment: comment})
+			updateLastRecord(model.WorkDay{Comment: comment})
 		} else {
 			help()
 		}
@@ -136,7 +136,7 @@ func clearLogFile() {
 	checkError(err)
 }
 
-func updateLastRecord(workDayPatch src.WorkDay) {
+func updateLastRecord(workDayPatch model.WorkDay) {
 	file := openFile()
 	defer file.Close()
 
@@ -163,7 +163,7 @@ func updateLastRecord(workDayPatch src.WorkDay) {
 	file.WriteString(logString)
 }
 
-func patchWordDay(workDay *src.WorkDay, patch src.WorkDay) {
+func patchWordDay(workDay *model.WorkDay, patch model.WorkDay) {
 	if patch.DinnerMinutes > 0 {
 		workDay.DinnerMinutes = patch.DinnerMinutes
 	}
@@ -177,7 +177,7 @@ func patchWordDay(workDay *src.WorkDay, patch src.WorkDay) {
 	}
 }
 
-func getWorkDays(file *os.File) (lastWorkDay src.WorkDay, workDays []src.WorkDay) {
+func getWorkDays(file *os.File) (lastWorkDay model.WorkDay, workDays []model.WorkDay) {
 	bf := bufio.NewReader(file)
 
 	for {
@@ -191,7 +191,7 @@ func getWorkDays(file *os.File) (lastWorkDay src.WorkDay, workDays []src.WorkDay
 			log.Fatal(err)
 		}
 
-		var c src.WorkDay
+		var c model.WorkDay
 		json.Unmarshal(line, &c)
 
 		workDays = append(workDays, c)
@@ -208,7 +208,7 @@ func getWorkDays(file *os.File) (lastWorkDay src.WorkDay, workDays []src.WorkDay
 	return lastWorkDay, workDays
 }
 
-func start(workDay src.WorkDay) {
+func start(workDay model.WorkDay) {
 	file := openFile()
 	defer file.Close()
 

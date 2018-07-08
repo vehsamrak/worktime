@@ -1,4 +1,4 @@
-package src
+package model
 
 type WorkDay struct {
 	StartTime     string `json:"startTime"`
