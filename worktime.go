@@ -49,14 +49,20 @@ func main() {
 	case "start":
 		start(model.WorkDay{StartTime: time.Now().Format(TimeFormat)})
 	case "stop":
-		updateLastRecord(model.WorkDay{StopTime: time.Now().Format(TimeFormat)})
+		updateLastRecord(model.WorkDay{StopTime: time.Now().Format(TimeFormat)}, false)
 	case "dinner":
 		if parameter != "" {
 			dinnerMinutes, _ := strconv.Atoi(parameter)
-			updateLastRecord(model.WorkDay{DinnerMinutes: dinnerMinutes})
+			updateLastRecord(model.WorkDay{DinnerMinutes: dinnerMinutes}, false)
 		} else {
 			help()
 		}
+	case "-":
+		correctTime(parameter, true, false)
+	case "+":
+		correctTime(parameter, false, false)
+	case "correct":
+		correctTime(parameter, false, true)
 	case "time":
 		var verboseLog bool
 		var tailNumber int
@@ -72,10 +78,10 @@ func main() {
 		}
 
 		countTime(tailNumber, verboseLog)
-	case "note":
+	case "note", "comment":
 		if parameter != "" {
 			comment := strings.Join(arguments[:], " ")
-			updateLastRecord(model.WorkDay{Comment: comment})
+			updateLastRecord(model.WorkDay{Comment: comment}, false)
 		} else {
 			help()
 		}
@@ -86,8 +92,22 @@ func main() {
 	}
 }
 
+func correctTime(minuteString string, isTimeNegative bool, overwrite bool) {
+	if minuteString != "" {
+		correction, _ := strconv.Atoi(minuteString)
+
+		if isTimeNegative {
+			correction *= -1
+		}
+
+		updateLastRecord(model.WorkDay{Correction: correction}, overwrite)
+	} else {
+		help()
+	}
+}
+
 func help() {
-	fmt.Println("Использование: worktime (start|stop|time [full]|dinner (minutes)|note (comment)|version)")
+	fmt.Println("Использование: worktime (start|stop|time|dinner|note|+|-|correct|version)")
 	fmt.Println("   start \t\tОтметка о начале рабочего дня")
 	fmt.Println("   stop \t\tОтметка об окончании рабочего дня")
 	fmt.Println("   dinner (minutes) \tЗапись количества минут проведенных на отдыхе или обеде")
@@ -95,6 +115,8 @@ func help() {
 	fmt.Println("   time full\t\tПросморт полного лога рабочего времени")
 	fmt.Println("   time full [X]\tПросморт лога рабочего времени за X последних дней")
 	fmt.Println("   note (text comment) \tДобавление комментария к текущему дню")
+	fmt.Println("   +/- (minutes) \tПрибавление или убавление корректировочных минут")
+	fmt.Println("   correct (minutes) \tИзменение корректировочных минут")
 	fmt.Println("   version \t\tОтображение текущей версии")
 	fmt.Println("   help \t\tПросмотр текущей справки")
 }
@@ -136,7 +158,7 @@ func clearLogFile() {
 	checkError(err)
 }
 
-func updateLastRecord(workDayPatch model.WorkDay) {
+func updateLastRecord(workDayPatch model.WorkDay, overwrite bool) {
 	file := openFile()
 	defer file.Close()
 
@@ -155,7 +177,7 @@ func updateLastRecord(workDayPatch model.WorkDay) {
 		lastWorkDay.DinnerMinutes = DefaultDinnerDuration
 	}
 
-	patchWordDay(&lastWorkDay, workDayPatch)
+	patchWordDay(&lastWorkDay, workDayPatch, overwrite)
 
 	jsonEncodedMark, _ := json.Marshal(lastWorkDay)
 	logString := fmt.Sprintln(string(jsonEncodedMark))
@@ -163,8 +185,8 @@ func updateLastRecord(workDayPatch model.WorkDay) {
 	file.WriteString(logString)
 }
 
-func patchWordDay(workDay *model.WorkDay, patch model.WorkDay) {
-	if patch.DinnerMinutes > 0 {
+func patchWordDay(workDay *model.WorkDay, patch model.WorkDay, overwrite bool) {
+	if patch.DinnerMinutes != 0 {
 		workDay.DinnerMinutes = patch.DinnerMinutes
 	}
 
@@ -174,6 +196,14 @@ func patchWordDay(workDay *model.WorkDay, patch model.WorkDay) {
 
 	if patch.Comment != "" {
 		workDay.Comment = patch.Comment
+	}
+
+	if patch.Correction != 0 {
+		if overwrite {
+			workDay.Correction = patch.Correction
+		} else {
+			workDay.Correction += patch.Correction
+		}
 	}
 }
 
