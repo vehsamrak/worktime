@@ -23,7 +23,7 @@ const LogPath = "worktime.log"
 const TimeFormat = "2006-01-02 15:04"
 const TimeFormatDate = "01-02"
 const TimeFormatShort = "15:04"
-const WorkHoursNumber = 8
+const WorkHoursCount = 8
 
 func main() {
 	arguments := os.Args[1:]
@@ -47,7 +47,13 @@ func main() {
 
 	switch command {
 	case "start":
-		start(model.WorkDay{StartTime: time.Now().Format(TimeFormat)})
+		start(
+			model.WorkDay{
+				StartTime:      time.Now().Format(TimeFormat),
+				DinnerMinutes:  DefaultDinnerDuration,
+				WorkDayMinutes: WorkHoursCount * 60,
+			},
+		)
 	case "stop":
 		updateLastRecord(model.WorkDay{StopTime: time.Now().Format(TimeFormat)}, false)
 	case "dinner":
@@ -80,7 +86,7 @@ func main() {
 		countTime(tailNumber, verboseLog)
 	case "note", "comment":
 		if parameter != "" {
-			comment := strings.Join(arguments[:], " ")
+			comment := strings.Join(arguments[1:], " ")
 			updateLastRecord(model.WorkDay{Comment: comment}, false)
 		} else {
 			help()
@@ -100,7 +106,7 @@ func correctTime(minuteString string, isTimeNegative bool, overwrite bool) {
 			correction *= -1
 		}
 
-		updateLastRecord(model.WorkDay{Correction: correction}, overwrite)
+		updateLastRecord(model.WorkDay{WorkDayMinutes: correction}, overwrite)
 	} else {
 		help()
 	}
@@ -115,8 +121,8 @@ func help() {
 	fmt.Println("   time full\t\tПросморт полного лога рабочего времени")
 	fmt.Println("   time full [X]\tПросморт лога рабочего времени за X последних дней")
 	fmt.Println("   note (text comment) \tДобавление комментария к текущему дню")
-	fmt.Println("   +/- (minutes) \tПрибавление или убавление корректировочных минут")
-	fmt.Println("   correct (minutes) \tИзменение корректировочных минут")
+	fmt.Println("   +/- (minutes) \tПрибавление или убавление рабочих минут (количество минут рабочего дня)")
+	fmt.Println("   correct (minutes) \tИзменение значения рабочего дня в минутах")
 	fmt.Println("   version \t\tОтображение текущей версии")
 	fmt.Println("   help \t\tПросмотр текущей справки")
 }
@@ -198,11 +204,11 @@ func patchWordDay(workDay *model.WorkDay, patch model.WorkDay, overwrite bool) {
 		workDay.Comment = patch.Comment
 	}
 
-	if patch.Correction != 0 {
+	if patch.WorkDayMinutes != 0 {
 		if overwrite {
-			workDay.Correction = patch.Correction
+			workDay.WorkDayMinutes = patch.WorkDayMinutes
 		} else {
-			workDay.Correction += patch.Correction
+			workDay.WorkDayMinutes += patch.WorkDayMinutes
 		}
 	}
 }
@@ -272,8 +278,8 @@ func countTime(tailNumber int, verboseLog bool) {
 	workDays = append(workDays, lastWorkDay)
 
 	if verboseLog {
-		fmt.Println("Дата  | Начал Конец | Обед \t| Переработка")
-		fmt.Println("---------------------------------------------------")
+		fmt.Println("Дата  | Начал Конец | Обед \t| Рабочих минут | Переработка \t| Комментарий")
+		fmt.Println("---------------------------------------------------------------------------------------")
 	}
 
 	cutWorkDaysStatistics := tailNumber > 0 && len(workDays) >= tailNumber
@@ -295,7 +301,7 @@ func countTime(tailNumber int, verboseLog bool) {
 		checkError(err)
 
 		dinnerDuration := time.Duration(workDay.DinnerMinutes) * time.Minute
-		expectedWorkDayDuration := time.Duration(WorkHoursNumber * time.Hour)
+		expectedWorkDayDuration := time.Duration(time.Duration(workDay.WorkDayMinutes) * time.Minute)
 		overTimeWork := stopTime.Sub(startTime) - expectedWorkDayDuration - dinnerDuration
 		overTimeWorkHours := overTimeWork.Hours()
 
@@ -319,19 +325,23 @@ func countTime(tailNumber int, verboseLog bool) {
 				workTimingString = fmt.Sprintf("%v час %v мин", dayHours, math.Abs(dayMinutes))
 			}
 
-			fmt.Println(fmt.Sprintf("%v | %v %v | %v мин \t| %v",
+			fmt.Printf(
+				"%v | %v %v | %v мин \t| %v мин \t| %v \t| %v\n",
 				startTime.Format(TimeFormatDate),
 				startTime.Format(TimeFormatShort),
 				stopTime.Format(TimeFormatShort),
 				workDay.DinnerMinutes,
-				workTimingString))
+				workDay.WorkDayMinutes,
+				workTimingString,
+				workDay.Comment,
+			)
 		}
 
 		minuteBalance = minuteBalance + fullDayMinutes
 	}
 
 	if verboseLog {
-		fmt.Println("===================================================")
+		fmt.Println("=======================================================================================")
 	}
 
 	if cutWorkDaysStatistics {
