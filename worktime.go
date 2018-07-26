@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"github.com/ttacon/chalk"
 )
 
 const Version = "1.5.0"
@@ -113,7 +114,12 @@ func correctTime(minuteString string, isTimeNegative bool, overwrite bool) {
 }
 
 func help() {
-	fmt.Println("Использование: worktime (start|stop|time|dinner|note|+|-|correct|version)")
+	fmt.Printf(
+		"Использование: %s%s%s (start|stop|time|dinner|note|+|-|correct|version)",
+		chalk.Yellow,
+		chalk.Bold.TextStyle("worktime"),
+		chalk.Reset,
+	)
 	fmt.Println("   start \t\tОтметка о начале рабочего дня")
 	fmt.Println("   stop \t\tОтметка об окончании рабочего дня")
 	fmt.Println("   dinner (minutes) \tЗапись количества минут проведенных на отдыхе или обеде")
