@@ -4,8 +4,6 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"github.com/Vehsamrak/worktime/model"
-	"github.com/mitchellh/go-homedir"
 	"io"
 	"io/ioutil"
 	"log"
@@ -14,6 +12,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/Vehsamrak/worktime/model"
+	"github.com/mitchellh/go-homedir"
 	"github.com/ttacon/chalk"
 )
 
