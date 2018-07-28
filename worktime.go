@@ -116,7 +116,7 @@ func correctTime(minuteString string, isTimeNegative bool, overwrite bool) {
 
 func help() {
 	fmt.Printf(
-		"Использование: %s%s%s (start|stop|time|dinner|note|+|-|correct|version)",
+		"Использование: %s%s%s (start|stop|time|dinner|note|+|-|correct|version)\n",
 		chalk.Yellow,
 		chalk.Bold.TextStyle("worktime"),
 		chalk.Reset,
