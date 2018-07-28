@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"math"
 	"os"
@@ -13,19 +12,20 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Vehsamrak/worktime/src"
 	"github.com/Vehsamrak/worktime/src/model"
-	"github.com/mitchellh/go-homedir"
 	"github.com/ttacon/chalk"
 )
 
 const Version = "1.7.0"
 const DefaultDinnerDuration = 30
-const LogDirectory = ".worktime/"
-const LogPath = "worktime.log"
 const TimeFormat = "2006-01-02 15:04"
 const TimeFormatDate = "01-02"
 const TimeFormatShort = "15:04"
 const WorkHoursCount = 8
+
+var errorHandler = &src.ErrorHandler{}
+var fileService = &src.FileProcessor{ErrorHandler: errorHandler}
 
 func main() {
 	arguments := os.Args[1:]
@@ -134,56 +134,19 @@ func help() {
 	fmt.Println("   help \t\tПросмотр текущей справки")
 }
 
-func openFile() *os.File {
-	logDirectory := getLogDirectory()
-	logPath := getFilePath()
-	var _, err = os.Stat(logPath)
-
-	if os.IsNotExist(err) {
-		fmt.Println("Log file doesn't exist. Creating new one at", logPath)
-	}
-
-	os.MkdirAll(logDirectory, 0777)
-	file, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0644)
-	checkError(err)
-
-	return file
-}
-
-func getLogDirectory() string {
-	homeDirectory, _ := homedir.Dir()
-
-	return homeDirectory + "/" + LogDirectory
-}
-
-func getFilePath() string {
-	return getLogDirectory() + LogPath
-}
-
-func checkError(error error) {
-	if error != nil {
-		panic(error)
-	}
-}
-
-func clearLogFile() {
-	err := ioutil.WriteFile(getFilePath(), []byte(""), 0644)
-	checkError(err)
-}
-
 func updateLastRecord(workDayPatch model.WorkDay, overwrite bool) {
-	file := openFile()
+	file := fileService.OpenFile()
 	defer file.Close()
 
 	lastWorkDay, workDays := getWorkDays(file)
 
-	clearLogFile()
+	fileService.ClearLogFile()
 
 	for _, workDay := range workDays {
 		jsonEncodedMark, _ := json.Marshal(workDay)
 		logString := fmt.Sprintln(string(jsonEncodedMark))
 		_, err := file.WriteString(logString)
-		checkError(err)
+		errorHandler.Check(err)
 	}
 
 	if lastWorkDay.DinnerMinutes == 0 {
@@ -252,17 +215,17 @@ func getWorkDays(file *os.File) (lastWorkDay model.WorkDay, workDays []model.Wor
 }
 
 func start(workDay model.WorkDay) {
-	file := openFile()
+	file := fileService.OpenFile()
 	defer file.Close()
 
 	lastWorkDay, _ := getWorkDays(file)
 
 	if lastWorkDay.StartTime != "" {
 		lastStartDate, err := time.Parse(TimeFormat, lastWorkDay.StartTime)
-		checkError(err)
+		errorHandler.Check(err)
 
 		if lastStartDate.Day() == time.Now().Day() {
-			fmt.Printf("Current work day was already started. Please edit %v if you like.\n", getFilePath())
+			fmt.Printf("Current work day was already started. Please edit %v if you like.\n", fileService.GetFilePath())
 
 			return
 		}
@@ -274,11 +237,11 @@ func start(workDay model.WorkDay) {
 	fmt.Println(logString)
 
 	_, err := file.WriteString(logString)
-	checkError(err)
+	errorHandler.Check(err)
 }
 
 func countTime(tailNumber int, verboseLog bool) {
-	file := openFile()
+	file := fileService.OpenFile()
 	defer file.Close()
 
 	lastWorkDay, workDays := getWorkDays(file)
@@ -298,14 +261,14 @@ func countTime(tailNumber int, verboseLog bool) {
 	var minuteBalance float64
 	for _, workDay := range workDays {
 		startTime, err := time.Parse(TimeFormat, workDay.StartTime)
-		checkError(err)
+		errorHandler.Check(err)
 
 		if workDay.StopTime == "" {
 			continue
 		}
 
 		stopTime, err := time.Parse(TimeFormat, workDay.StopTime)
-		checkError(err)
+		errorHandler.Check(err)
 
 		dinnerDuration := time.Duration(workDay.DinnerMinutes) * time.Minute
 		expectedWorkDayDuration := time.Duration(time.Duration(workDay.WorkDayMinutes) * time.Minute)
