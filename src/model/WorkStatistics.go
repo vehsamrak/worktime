@@ -1,6 +1,6 @@
 package model
 
 type WorkStatistics struct {
-	WorkDays           []WorkDay
+	WorkDays           []*WorkDay
 	WorkMinutesOverall int64
 }
