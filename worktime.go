@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Vehsamrak/worktime/model"
+	"github.com/Vehsamrak/worktime/src/model"
 	"github.com/mitchellh/go-homedir"
 	"github.com/ttacon/chalk"
 )
