@@ -17,7 +17,7 @@ import (
 	"github.com/ttacon/chalk"
 )
 
-const Version = "1.5.0"
+const Version = "1.7.0"
 const DefaultDinnerDuration = 30
 const LogDirectory = ".worktime/"
 const LogPath = "worktime.log"
