@@ -252,7 +252,7 @@ func countTime(tailNumber int, verboseLog bool) {
 		fmt.Println("---------------------------------------------------------------------------------------")
 	}
 
-	cutWorkDaysStatistics := tailNumber > 0 && len(workDays) >= tailNumber
+	cutWorkDaysStatistics := tailNumber > 0 && len(workDays) > tailNumber
 
 	if cutWorkDaysStatistics {
 		workDays = workDays[len(workDays)-tailNumber-1:]
