@@ -100,20 +100,6 @@ func main() {
 	}
 }
 
-func correctTime(minuteString string, isTimeNegative bool, overwrite bool) {
-	if minuteString != "" {
-		correction, _ := strconv.Atoi(minuteString)
-
-		if isTimeNegative {
-			correction *= -1
-		}
-
-		updateLastRecord(model.WorkDay{WorkDayMinutes: correction}, overwrite)
-	} else {
-		help()
-	}
-}
-
 func help() {
 	fmt.Printf(
 		"Использование: %s%s%s (start|stop|time|dinner|note|+|-|correct|version)\n",
@@ -132,6 +118,20 @@ func help() {
 	fmt.Println("   correct (minutes) \tИзменение значения рабочего дня в минутах")
 	fmt.Println("   version \t\tОтображение текущей версии")
 	fmt.Println("   help \t\tПросмотр текущей справки")
+}
+
+func correctTime(minuteString string, isTimeNegative bool, overwrite bool) {
+	if minuteString != "" {
+		correction, _ := strconv.Atoi(minuteString)
+
+		if isTimeNegative {
+			correction *= -1
+		}
+
+		updateLastRecord(model.WorkDay{WorkDayMinutes: correction}, overwrite)
+	} else {
+		help()
+	}
 }
 
 func updateLastRecord(workDayPatch model.WorkDay, overwrite bool) {
@@ -153,7 +153,7 @@ func updateLastRecord(workDayPatch model.WorkDay, overwrite bool) {
 		lastWorkDay.DinnerMinutes = DefaultDinnerDuration
 	}
 
-	patchWordDay(&lastWorkDay, workDayPatch, overwrite)
+	patchWorkDay(&lastWorkDay, workDayPatch, overwrite)
 
 	jsonEncodedMark, _ := json.Marshal(lastWorkDay)
 	logString := fmt.Sprintln(string(jsonEncodedMark))
@@ -161,7 +161,7 @@ func updateLastRecord(workDayPatch model.WorkDay, overwrite bool) {
 	file.WriteString(logString)
 }
 
-func patchWordDay(workDay *model.WorkDay, patch model.WorkDay, overwrite bool) {
+func patchWorkDay(workDay *model.WorkDay, patch model.WorkDay, overwrite bool) {
 	if patch.DinnerMinutes != 0 {
 		workDay.DinnerMinutes = patch.DinnerMinutes
 	}
